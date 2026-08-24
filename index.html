@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>YourZon Bot — לוח בקרה</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Assistant", sans-serif;
+    background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+    color: #fff; min-height: 100vh; padding: 24px;
+  }
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px; flex-wrap: wrap; gap: 16px;
+  }
+  h1 { font-size: 28px; font-weight: 800; }
+  .brand-red { color: #ff3b5c; }
+  .badge-cloud {
+    background: rgba(34,197,94,0.15); color: #22c55e;
+    padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  }
+
+  .setup-banner {
+    background: rgba(255,193,7,0.1); border: 1px solid rgba(255,193,7,0.3);
+    border-radius: 12px; padding: 16px 20px; margin-bottom: 20px;
+    display: none;
+  }
+  .setup-banner h3 { color: #ffc107; margin-bottom: 6px; }
+  .setup-banner p { font-size: 14px; opacity: 0.9; }
+  .setup-banner input {
+    width: 100%; margin-top: 10px; padding: 10px;
+    border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(0,0,0,0.3); color: #fff; font-family: inherit;
+  }
+  .setup-banner button {
+    margin-top: 10px; padding: 8px 16px; border-radius: 8px;
+    border: none; background: #ffc107; color: #000; font-weight: 600; cursor: pointer;
+  }
+
+  .layout { display: grid; grid-template-columns: 340px 1fr; gap: 20px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  .card {
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px; padding: 20px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 16px; margin-bottom: 14px; opacity: 0.85; font-weight: 600; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .stat {
+    background: rgba(255,255,255,0.05); border-radius: 12px; padding: 14px;
+    text-align: center;
+  }
+  .stat .n { font-size: 28px; font-weight: 800; color: #ff3b5c; }
+  .stat .l { font-size: 12px; opacity: 0.7; margin-top: 4px; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .tab { padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; background: rgba(255,255,255,0.05); }
+  .tab.active { background: #ff3b5c; }
+
+  .conv-list, .lead-list { max-height: 65vh; overflow-y: auto; }
+  .conv-item, .lead-item {
+    background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px 14px;
+    margin-bottom: 8px; cursor: pointer; transition: background 0.2s;
+  }
+  .conv-item:hover, .lead-item:hover { background: rgba(255,255,255,0.1); }
+  .conv-item .phone { font-weight: 600; font-size: 14px; }
+  .conv-item .last { font-size: 12px; opacity: 0.6; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .conv-item .time { font-size: 11px; opacity: 0.5; float: left; }
+
+  .lead-item .name { font-weight: 700; color: #ff3b5c; }
+  .lead-item .meta { font-size: 12px; opacity: 0.7; margin-top: 4px; }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 999px;
+    font-size: 10px; font-weight: 700; margin-left: 6px;
+  }
+  .badge-ready { background: #22c55e; color: #000; }
+  .badge-new   { background: rgba(255,255,255,0.15); }
+
+  .refresh-btn {
+    background: rgba(255,255,255,0.1); color: #fff; border: none;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;
+  }
+
+  .modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100;
+    display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal.show { display: flex; }
+  .modal-content {
+    background: #1a1a2e; border-radius: 16px; padding: 24px;
+    max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto;
+  }
+  .msg { padding: 8px 12px; border-radius: 10px; margin-bottom: 6px; max-width: 80%; }
+  .msg.user { background: #ff3b5c; margin-right: auto; }
+  .msg.bot  { background: rgba(255,255,255,0.1); margin-left: auto; }
+  .msg .t { font-size: 10px; opacity: 0.6; margin-top: 4px; }
+
+  .empty { opacity: 0.5; text-align: center; padding: 20px; font-size: 14px; }
+  .loading { opacity: 0.5; text-align: center; padding: 20px; }
+  .arch {
+    font-family: monospace; font-size: 12px; opacity: 0.7; line-height: 1.6;
+    background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🤖 <span class="brand-red">YourZon</span> Bot</h1>
+    <div style="opacity:0.7; font-size:13px; margin-top:4px">
+      <span class="badge-cloud">☁️ Cloud</span>
+      Meta WhatsApp API · Google Sheets · Claude AI
+    </div>
+  </div>
+  <button class="refresh-btn" onclick="loadAll()">🔄 רענן</button>
+</header>
+
+<div class="setup-banner" id="setupBanner">
+  <h3>⚙️ הגדרה ראשונית</h3>
+  <p>הכנס את כתובת ה-Web App של Apps Script (מסתיים ב-<code>/exec</code>):</p>
+  <input id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec" />
+  <button onclick="saveScriptUrl()">שמור וטען</button>
+</div>
+
+<div class="layout">
+  <div>
+    <div class="card">
+      <h2>סטטיסטיקות</h2>
+      <div class="stats-grid">
+        <div class="stat"><div class="n" id="stat-total">-</div><div class="l">שיחות</div></div>
+        <div class="stat"><div class="n" id="stat-today">-</div><div class="l">היום</div></div>
+        <div class="stat"><div class="n" id="stat-leads">-</div><div class="l">לידים</div></div>
+        <div class="stat"><div class="n" id="stat-escalated">-</div><div class="l">חמים 🔥</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>ארכיטקטורה</h2>
+      <div class="arch">
+לקוח שולח בוואטסאפ<br>
+&nbsp;&nbsp;↓<br>
+Meta WhatsApp Cloud API<br>
+&nbsp;&nbsp;↓ webhook<br>
+Google Apps Script<br>
+&nbsp;&nbsp;↓ שומר + שולף<br>
+Google Sheets (DB)<br>
+&nbsp;&nbsp;↓ מבקש תשובה<br>
+Claude AI (Anthropic)<br>
+&nbsp;&nbsp;↓ מחזיר טקסט<br>
+Meta API → הלקוח מקבל
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>הגדרות</h2>
+      <p style="font-size:13px; opacity:0.7; margin-bottom:10px">
+        כתובת השרת נשמרת בדפדפן הזה בלבד
+      </p>
+      <button class="refresh-btn" onclick="changeScriptUrl()">שנה כתובת שרת</button>
+      <br><br>
+      <a id="sheetsLink" href="#" target="_blank" style="color:#ff3b5c; font-size:13px; text-decoration:none">
+        📊 פתח את גיליון הנתונים
+      </a>
+    </div>
+  </div>
+
+  <div>
+    <div class="tabs">
+      <div class="tab active" data-tab="conv"  onclick="showTab('conv')">שיחות</div>
+      <div class="tab"        data-tab="leads" onclick="showTab('leads')">לידים</div>
+    </div>
+
+    <div class="card" id="tab-conv">
+      <h2>שיחות אחרונות</h2>
+      <div class="conv-list" id="convList"><div class="loading">טוען...</div></div>
+    </div>
+
+    <div class="card" id="tab-leads" style="display:none">
+      <h2>לידים שנאספו</h2>
+      <div class="lead-list" id="leadList"><div class="loading">טוען...</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="convModal" onclick="if(event.target===this) closeModal()">
+  <div class="modal-content">
+    <h2 id="modalTitle" style="margin-bottom:16px"></h2>
+    <div id="modalMessages"></div>
+    <button class="refresh-btn" style="margin-top:16px" onclick="closeModal()">סגור</button>
+  </div>
+</div>
+
+<script>
+  const LS_KEY = 'yourzon_script_url';
+  let SCRIPT_URL = localStorage.getItem(LS_KEY) || '';
+  let allConversations = [];
+
+  function showBanner() {
+    document.getElementById('setupBanner').style.display = 'block';
+    document.getElementById('convList').innerHTML  = '<div class="empty">נדרשת הגדרה — הכנס למעלה את כתובת ה-Web App</div>';
+    document.getElementById('leadList').innerHTML  = '<div class="empty">נדרשת הגדרה — הכנס למעלה את כתובת ה-Web App</div>';
+  }
+
+  function hideBanner() {
+    document.getElementById('setupBanner').style.display = 'none';
+  }
+
+  function saveScriptUrl() {
+    const val = document.getElementById('scriptUrlInput').value.trim();
+    if (!val.includes('script.google.com') || !val.endsWith('/exec')) {
+      alert('כתובת לא תקינה — צריכה להסתיים ב-/exec');
+      return;
+    }
+    localStorage.setItem(LS_KEY, val);
+    SCRIPT_URL = val;
+    hideBanner();
+    loadAll();
+  }
+
+  function changeScriptUrl() {
+    document.getElementById('scriptUrlInput').value = SCRIPT_URL;
+    document.getElementById('setupBanner').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function api(action) {
+    if (!SCRIPT_URL) throw new Error('no url');
+    const r = await fetch(`${SCRIPT_URL}?action=${action}`);
+    return r.json();
+  }
+
+  async function loadAll() {
+    if (!SCRIPT_URL) { showBanner(); return; }
+
+    try {
+      const [stats, conversations, leads] = await Promise.all([
+        api('stats'),
+        api('conversations'),
+        api('leads'),
+      ]);
+
+      document.getElementById('stat-total').textContent     = stats.total || 0;
+      document.getElementById('stat-today').textContent     = stats.today || 0;
+      document.getElementById('stat-leads').textContent     = stats.leads || 0;
+      document.getElementById('stat-escalated').textContent = stats.escalated || 0;
+
+      allConversations = conversations;
+      renderConversations(conversations);
+      renderLeads(leads);
+    } catch (err) {
+      console.error(err);
+      document.getElementById('convList').innerHTML =
+        '<div class="empty">❌ שגיאה בטעינה — בדוק שכתובת ה-Web App נכונה ושהיא בגישת "כל אחד"</div>';
+    }
+  }
+
+  function renderConversations(convs) {
+    const el = document.getElementById('convList');
+    if (!convs || !convs.length) { el.innerHTML = '<div class="empty">אין שיחות עדיין</div>'; return; }
+    el.innerHTML = convs.map(c => {
+      const last = c.messages[c.messages.length - 1];
+      const time = new Date(c.lastActivity).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+      return `
+        <div class="conv-item" onclick="openConv('${c.phone}')">
+          <span class="time">${time}</span>
+          <div class="phone">📱 ${c.phone}${c.name && c.name !== c.phone ? ' · ' + c.name : ''}</div>
+          <div class="last">${last ? (last.role === 'user' ? '👤 ' : '🤖 ') + escapeHtml(last.content) : ''}</div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderLeads(leads) {
+    const el = document.getElementById('leadList');
+    if (!leads || !leads.length) { el.innerHTML = '<div class="empty">אין לידים עדיין</div>'; return; }
+    el.innerHTML = leads.map(l => `
+      <div class="lead-item">
+        <span class="badge ${l.status === 'ready_for_call' ? 'badge-ready' : 'badge-new'}">
+          ${l.status === 'ready_for_call' ? '🔥 מוכן לשיחה' : 'חדש'}
+        </span>
+        <span class="name">${l.name || l.contactName || 'לא ידוע'}</span>
+        <div class="meta">
+          📱 ${l.phone}
+          ${l.businessType ? '· 🏢 ' + l.businessType : ''}
+          ${l.interest     ? '· 🎯 ' + l.interest     : ''}
+        </div>
+      </div>`).join('');
+  }
+
+  function openConv(phone) {
+    const conv = allConversations.find(c => c.phone === phone);
+    if (!conv) return;
+    document.getElementById('modalTitle').textContent = '💬 ' + phone;
+    document.getElementById('modalMessages').innerHTML = conv.messages.map(m => `
+      <div class="msg ${m.role}">
+        ${escapeHtml(m.content)}
+        <div class="t">${new Date(m.timestamp).toLocaleString('he-IL')}</div>
+      </div>`).join('');
+    document.getElementById('convModal').classList.add('show');
+  }
+
+  function closeModal() {
+    document.getElementById('convModal').classList.remove('show');
+  }
+
+  function showTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    document.getElementById('tab-conv').style.display  = name === 'conv'  ? 'block' : 'none';
+    document.getElementById('tab-leads').style.display = name === 'leads' ? 'block' : 'none';
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+  }
+
+  if (!SCRIPT_URL) {
+    showBanner();
+  } else {
+    hideBanner();
+    loadAll();
+    setInterval(loadAll, 15000);
+  }
+</script>
+</body>
+</html>
